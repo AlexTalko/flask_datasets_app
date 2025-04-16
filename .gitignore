@@ -1,0 +1,39 @@
+# Виртуальное окружение
+venv/
+env/
+
+# Временные файлы Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Локальные файлы базы данных и данных
+*.sqlite3
+*.db
+*.xlsx
+*.csv
+
+# Логи и временные файлы
+*.log
+*.pid
+*.seed
+*.gz
+
+# Файлы редакторов и IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Файлы окружения
+.env
+*.env
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Кэш и сборочные файлы
+*.egg-info/
+dist/
+build/
