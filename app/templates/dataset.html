@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset: {{ dataset.name }}{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Dataset: {{ dataset.name }}</h1>
+    
+    <div class="mb-3">
+        <label for="dataset-select" class="form-label">Select Another Dataset:</label>
+        <select id="dataset-select" class="form-select">
+            {% for ds in datasets %}
+                <option value="{{ ds.id }}" {% if ds.id == dataset.id %}selected{% endif %}>{{ ds.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <script>
+        document.getElementById('dataset-select').addEventListener('change', function() {
+            window.location.href = '/dataset/' + this.value;
+        });
+    </script>
+    
+    <h2 class="mt-4">Statistics</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Average</th>
+                <th>Maximum</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>EMG1</td>
+                <td>{{ stats.emg1_avg | round(2) }}</td>
+                <td>{{ stats.emg1_max }}</td>
+            </tr>
+            <tr>
+                <td>EMG2</td>
+                <td>{{ stats.emg2_avg | round(2) }}</td>
+                <td>{{ stats.emg2_max }}</td>
+            </tr>
+            <tr>
+                <td>EMG3</td>
+                <td>{{ stats.emg3_avg | round(2) }}</td>
+                <td>{{ stats.emg3_max }}</td>
+            </tr>
+            <tr>
+                <td>EMG4</td>
+                <td>{{ stats.emg4_avg | round(2) }}</td>
+                <td>{{ stats.emg4_max }}</td>
+            </tr>
+            <tr>
+                <td>Angle</td>
+                <td>{{ stats.angle_avg | round(2) }}</td>
+                <td>{{ stats.angle_max }}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2 class="mt-4">Graph</h2>
+    {{ plot_div | safe }}
+    
+    <h2 class="mt-4">Special Peaks</h2>
+    <p>Number of peaks where angle exceeds the last minimum by 20: {{ special_peaks_count }}</p>
+    
+    <a href="{{ url_for('main.index') }}" class="btn btn-secondary mt-3">Back to List</a>
+{% endblock %}

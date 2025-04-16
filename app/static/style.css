@@ -1,0 +1,23 @@
+body {
+    background-color: #f8f9fa;
+}
+.navbar-brand {
+    font-weight: bold;
+}
+.alert {
+    margin-bottom: 1rem;
+}
+.table {
+    background-color: #fff;
+}
+.plotly-graph-div {
+    margin-top: 1rem;
+}
+.delete-dataset {
+    padding: 0.2rem 0.5rem;
+    font-size: 1rem;
+    line-height: 1;
+}
+.delete-dataset span {
+    font-weight: bold;
+}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Datasets List{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Available Datasets</h1>
+    {% if datasets %}
+        <ul class="list-group">
+            {% for dataset in datasets %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('main.dataset_page', dataset_id=dataset.id) }}">{{ dataset.name }}</a>
+                    <button class="btn btn-danger btn-sm delete-dataset" data-id="{{ dataset.id }}" title="Delete dataset">
+                        <span>&times;</span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No datasets available. Add one below!</p>
+    {% endif %}
+    <a href="{{ url_for('main.add_dataset') }}" class="btn btn-primary mt-3">Add New Dataset</a>
+
+    <!-- JavaScript for handling delete requests -->
+    <script>
+        document.querySelectorAll('.delete-dataset').forEach(button => {
+            button.addEventListener('click', function() {
+                const datasetId = this.getAttribute('data-id');
+                const datasetName = this.parentElement.querySelector('a').textContent;
+
+                // Show confirmation dialog
+                if (!confirm(`Are you sure you want to delete dataset "${datasetName}"?`)) {
+                    return;
+                }
+
+                // Send DELETE request
+                fetch(`/api/datasets/${datasetId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Remove the dataset from the list
+                        this.parentElement.remove();
+                        // Show message if list is empty
+                        if (!document.querySelector('.list-group-item')) {
+                            const message = document.createElement('p');
+                            message.className = 'text-muted';
+                            message.textContent = 'No datasets available. Add one below!';
+                            document.querySelector('.list-group').replaceWith(message);
+                        }
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to delete dataset');
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert(`Error: ${error.message}`);
+                });
+            });
+        });
+    </script>
+{% endblock %}
