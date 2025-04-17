@@ -60,7 +60,7 @@ def dataset_page(dataset_id):
 def add_dataset():
     if request.method == 'POST':
         file = request.files['file']
-        name = request.form.get('name', '').strip()  # Пользовательское имя, если указано
+        name = request.form.get('name', '').strip()
 
         if not file:
             flash('Пожалуйста, выберите файл Excel.', 'error')
@@ -69,12 +69,11 @@ def add_dataset():
         # Извлекаем имя файла без расширения
         filename = file.filename
         if filename:
-            base_name = os.path.splitext(filename)[0]  # Удаляем .xlsx
+            base_name = os.path.splitext(filename)[0]
             default_name = base_name if base_name else 'Untitled Dataset'
         else:
             default_name = 'Untitled Dataset'
 
-        # Используем пользовательское имя или имя файла
         name = name if name else default_name
 
         # Проверка уникальности имени
@@ -82,30 +81,52 @@ def add_dataset():
         counter = 1
         original_name = name
         while existing_dataset:
-            # Добавляем суффикс, если имя уже существует
             name = f"{original_name}_{counter}"
             existing_dataset = Dataset.query.filter_by(name=name).first()
             counter += 1
 
         try:
             df = pd.read_excel(file)
+
+            # Определяем требуемые столбцы
+            required_columns = {'timestamp', 'emg1', 'emg2', 'emg3', 'emg4', 'angle'}
+
+            # Проверяем наличие всех требуемых столбцов
+            missing_columns = required_columns - set(df.columns)
+            if missing_columns:
+                flash(f'Ошибка: В файле отсутствуют требуемые столбцы: {", ".join(missing_columns)}', 'error')
+                return render_template('add_dataset.html')
+
+            # Проверяем, что файл содержит данные
+            if df.empty:
+                flash('Ошибка: Файл не содержит данных.', 'error')
+                return render_template('add_dataset.html')
+
             dataset = Dataset(name=name)
             db.session.add(dataset)
             db.session.commit()
 
-            # Преобразование типов для совместимости с PostgreSQL
-            df = df.astype({
-                'timestamp': 'int',
-                'emg1': 'int',
-                'emg2': 'int',
-                'emg3': 'int',
-                'emg4': 'int',
-                'angle': 'int'
-            })
+            try:
+                df = df.astype({
+                    'timestamp': 'int',
+                    'emg1': 'int',
+                    'emg2': 'int',
+                    'emg3': 'int',
+                    'emg4': 'int',
+                    'angle': 'int'
+                })
+            except (ValueError, TypeError) as e:
+                db.session.rollback()
+                flash('Ошибка: Некорректные данные в столбцах. Убедитесь, что все значения являются целыми числами.',
+                      'error')
+                return render_template('add_dataset.html')
+
             df['dataset_id'] = dataset.id
             df.to_sql('data_point', db.engine, if_exists='append', index=False, method='multi')
+
             flash(f'Набор данных "{name}" успешно добавлен.', 'success')
             return redirect(url_for('main.index'))
+
         except IntegrityError as e:
             db.session.rollback()
             flash(f'Ошибка: Набор данных с именем "{name}" уже существует.', 'error')

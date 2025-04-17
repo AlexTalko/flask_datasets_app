@@ -51,23 +51,25 @@ def get_dataset_data(dataset_id):
 
 @api_bp.route('/datasets', methods=['POST'])
 def upload_dataset():
+    # Проверка наличия файла в запросе
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
     file = request.files['file']
-    name = request.form.get('name', '').strip()  # User-provided name, if any
+    name = request.form.get('name', '').strip()  # Пользовательское имя, если указано
 
+    # Проверка, что файл выбран
     if not file.filename:
         return jsonify({"error": "No file selected"}), 400
 
-    # Extract filename without extension
+    # Извлекаем имя файла без расширения
     base_name = os.path.splitext(file.filename)[0]
     default_name = base_name if base_name else 'Untitled Dataset'
 
-    # Use user-provided name or filename
+    # Используем пользовательское имя или имя файла
     name = name if name else default_name
 
-    # Check for unique name
+    # Проверка уникальности имени
     existing_dataset = Dataset.query.filter_by(name=name).first()
     counter = 1
     original_name = name
@@ -77,20 +79,38 @@ def upload_dataset():
         counter += 1
 
     try:
+        # Читаем Excel файл
         df = pd.read_excel(file)
+
+        # Проверка наличия требуемых столбцов
+        required_columns = {'timestamp', 'emg1', 'emg2', 'emg3', 'emg4', 'angle'}
+        missing_columns = required_columns - set(df.columns)
+        if missing_columns:
+            return jsonify({"error": f"Missing required columns: {', '.join(missing_columns)}"}), 400
+
+        # Проверка, что файл содержит данные
+        if df.empty:
+            return jsonify({"error": "File is empty"}), 400
+
+        # Создаем запись о наборе данных
         dataset = Dataset(name=name)
         db.session.add(dataset)
         db.session.commit()
 
-        # Convert types for PostgreSQL compatibility
-        df = df.astype({
-            'timestamp': 'int',
-            'emg1': 'int',
-            'emg2': 'int',
-            'emg3': 'int',
-            'emg4': 'int',
-            'angle': 'int'
-        })
+        # Преобразование типов для совместимости с PostgreSQL
+        try:
+            df = df.astype({
+                'timestamp': 'int',
+                'emg1': 'int',
+                'emg2': 'int',
+                'emg3': 'int',
+                'emg4': 'int',
+                'angle': 'int'
+            })
+        except (ValueError, TypeError) as e:
+            db.session.rollback()
+            return jsonify({"error": "Invalid data in columns. Ensure all values are integers."}), 400
+
         df['dataset_id'] = dataset.id
         df.to_sql('data_point', db.engine, if_exists='append', index=False, method='multi')
 
